@@ -22,19 +22,21 @@ export class ManagementService {
         throw new ForbiddenException('Ky user nuk ekziston');
       }
 
-      const payment = await this.paymentModel.findOneAndUpdate(
-        { user: user._id },
-        {
-          $push: {
-            payments: {
-              ...dto,
-              householdHeader:
-                dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
+      const payment = await this.paymentModel
+        .findOneAndUpdate(
+          { user: user._id },
+          {
+            $push: {
+              payments: {
+                ...dto,
+                householdHeader:
+                  dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
+              },
             },
           },
-        },
-        { new: true, upsert: true },
-      );
+          { new: true, upsert: true },
+        )
+        .populate('user', '-password');
 
       if (!user.payments) {
         await this.userModel.updateOne(
@@ -162,7 +164,10 @@ export class ManagementService {
           ...userMatch,
         },
         {
-          $unwind: '$payments',
+          $unwind: {
+            path: '$payments',
+            preserveNullAndEmptyArrays: true,
+          },
         },
         { ...paymentsMatch },
         {
@@ -243,7 +248,7 @@ export class ManagementService {
         },
       );
 
-      return paymentId;
+      return { paymentId };
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
