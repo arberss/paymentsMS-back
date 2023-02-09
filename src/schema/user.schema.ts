@@ -14,13 +14,17 @@ export class User {
   @Prop()
   lastName: string;
 
-  @Prop()
+  @Prop({
+    unique: true,
+  })
   email: string;
 
   @Prop()
   password: string;
 
-  @Prop()
+  @Prop({
+    unique: true,
+  })
   personalNumber: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Status' })
