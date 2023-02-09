@@ -6,11 +6,13 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/schema/user.schema';
 import { AuthDto, SigninAuthDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
+import { Payment, PaymentDocument } from 'src/schema/payment.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
@@ -41,6 +43,16 @@ export class AuthService {
         status: dto.status ? dto.status : null,
         role: dto.role,
       });
+
+      const userPayment = await this.paymentModel.create({
+        user: createdUser._id,
+        payments: [],
+      });
+
+      await this.userModel.updateOne(
+        { _id: createdUser._id },
+        { payments: userPayment._id },
+      );
 
       return createdUser;
     } catch (error) {
