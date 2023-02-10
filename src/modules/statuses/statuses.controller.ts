@@ -1,4 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Roles } from 'src/guards/role/role.decorator';
+import { RolesGuard } from 'src/guards/role/role.guard';
+import { JwtAuthGuard } from '../auth/guard/jwt.guard';
+import { StatusDto } from './dto/status.dto';
 import { StatusesService } from './statuses.service';
 
 @Controller('statuses')
@@ -8,5 +12,13 @@ export class StatusesController {
   @Get()
   getStatuses() {
     return this.statusService.getStatuses();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Roles('admin')
+  @UseGuards(RolesGuard)
+  @Post()
+  addStatus(@Body() { name }: StatusDto) {
+    return this.statusService.addStatus({ name });
   }
 }
