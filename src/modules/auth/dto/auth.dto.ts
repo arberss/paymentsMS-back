@@ -25,6 +25,7 @@ export class AuthDto {
   @IsNumber()
   personalNumber: string;
 
+  @IsNotEmpty()
   @IsString()
   status: string;
 

@@ -12,7 +12,23 @@ export class StatusesService {
 
   async getStatuses() {
     try {
-      const statuses = await this.statusModel.find();
+      const statuses = await this.statusModel.aggregate([
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: 'status',
+            as: 'userStatus',
+          },
+        },
+        {
+          $project: {
+            id: 1,
+            name: 1,
+            users: { $size: '$userStatus' },
+          },
+        },
+      ]);
 
       return statuses;
     } catch (error) {
@@ -27,7 +43,7 @@ export class StatusesService {
         throw new ForbiddenException('Ekziston status me kete emer!');
       }
 
-      const createdStatus = await this.statusModel.create({ name });
+      const createdStatus = await this.statusModel.create({ name, users: [] });
       return createdStatus;
     } catch (error) {
       throw new ForbiddenException(error.message);

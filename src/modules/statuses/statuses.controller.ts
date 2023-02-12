@@ -14,9 +14,8 @@ export class StatusesController {
     return this.statusService.getStatuses();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  @UseGuards(RolesGuard)
   @Post()
   addStatus(@Body() { name }: StatusDto) {
     return this.statusService.addStatus({ name });

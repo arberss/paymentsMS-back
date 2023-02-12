@@ -182,30 +182,20 @@ export class ManagementService {
           },
         },
         {
-          $lookup: {
-            from: 'users',
-            localField: 'user',
-            foreignField: '_id',
-            as: 'user',
+          $project: {
+            user: '$user',
+            payments: 1,
           },
         },
+      ]);
+
+      await this.paymentModel.populate(result, [
         {
-          $unwind: '$user',
-        },
-        {
-          $project: {
-            user: {
-              _id: 1,
-              firstName: 1,
-              lastName: 1,
-              email: 1,
-              personalNumber: 1,
-              status: 1,
-              role: 1,
-              createdAt: 1,
-              updatedAt: 1,
-            },
-            payments: 1,
+          path: 'user',
+          select: '-password -payments',
+          populate: {
+            path: 'status',
+            select: 'name',
           },
         },
       ]);

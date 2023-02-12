@@ -1,3 +1,4 @@
+import { Status, StatusDocument } from 'src/schema/status.schema';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
@@ -13,6 +14,7 @@ export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
+    @InjectModel(Status.name) private statusModel: Model<StatusDocument>,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
@@ -40,7 +42,7 @@ export class AuthService {
         email: dto.email,
         password: hashedPassword,
         personalNumber: dto.personalNumber,
-        status: dto.status ? dto.status : null,
+        status: dto.status,
         role: dto.role,
       });
 
@@ -53,6 +55,12 @@ export class AuthService {
         { _id: createdUser._id },
         { payments: userPayment._id },
       );
+
+      await this.statusModel.findByIdAndUpdate(createdUser.status, {
+        $push: {
+          users: createdUser._id,
+        },
+      });
 
       return createdUser;
     } catch (error) {
