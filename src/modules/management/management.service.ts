@@ -179,12 +179,16 @@ export class ManagementService {
             payments: {
               $push: '$payments',
             },
+            totalPayed: {
+              $sum: '$payments.amount',
+            },
           },
         },
         {
           $project: {
             user: '$user',
             payments: 1,
+            totalPayed: 1,
           },
         },
       ]);
