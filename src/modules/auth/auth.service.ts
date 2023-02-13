@@ -69,33 +69,37 @@ export class AuthService {
   }
 
   async signin(dto: SigninAuthDto) {
-    const user = await this.userModel.findOne({
-      $or: [
-        { email: dto.emailOrPersonalNumber },
-        { personalNumber: dto.emailOrPersonalNumber },
-      ],
-    });
+    try {
+      const user = await this.userModel.findOne({
+        $or: [
+          { email: dto.emailOrPersonalNumber },
+          { personalNumber: dto.emailOrPersonalNumber },
+        ],
+      });
 
-    if (!user) {
-      throw new ForbiddenException('Ky user nuk ekziston');
+      if (!user) {
+        throw new ForbiddenException('Ky user nuk ekziston');
+      }
+
+      const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+      if (!isPasswordValid) {
+        throw new ForbiddenException('Password nuk eshte i sakt');
+      }
+
+      const token = await this.signToken({
+        id: user._id.toString(),
+        email: user.email,
+        personalNumber: user.personalNumber,
+        role: user.role,
+      });
+
+      return {
+        id: user._id.toString(),
+        token: token.access_token,
+      };
+    } catch (error) {
+      throw new ForbiddenException(error.message);
     }
-
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-    if (!isPasswordValid) {
-      throw new ForbiddenException('Password nuk eshte i sakt');
-    }
-
-    const token = await this.signToken({
-      id: user._id.toString(),
-      email: user.email,
-      personalNumber: user.personalNumber,
-      role: user.role,
-    });
-
-    return {
-      id: user._id.toString(),
-      token: token.access_token,
-    };
   }
 
   async signToken({
