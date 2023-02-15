@@ -1,4 +1,4 @@
-import { IsDate, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { paymentsType } from 'src/schema/payment.schema';
 
 export class PaymentDto {
@@ -11,7 +11,7 @@ export class PaymentDto {
   reason: string;
 
   @IsNotEmpty()
-  @IsDate()
+  @IsDateString()
   paymentDate: Date;
 
   @IsNotEmpty()

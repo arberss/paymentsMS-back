@@ -86,9 +86,21 @@ export class ManagementService {
           },
           { new: true },
         )
-        .populate('user', '-password');
+        .populate({
+          path: 'user',
+          select: '-password',
+          populate: { path: 'status', select: 'name' },
+        })
+        .lean();
 
-      return response;
+      const newData = {
+        ...response,
+        totalPayed: response.payments.reduce((prev, curr) => {
+          return prev + curr.amount;
+        }, 0),
+      };
+
+      return newData;
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
