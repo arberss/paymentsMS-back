@@ -1,3 +1,4 @@
+import { Status, StatusDocument } from 'src/schema/status.schema';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
@@ -6,11 +7,14 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from 'src/schema/user.schema';
 import { AuthDto, SigninAuthDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
+import { Payment, PaymentDocument } from 'src/schema/payment.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
+    @InjectModel(Status.name) private statusModel: Model<StatusDocument>,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
@@ -38,8 +42,24 @@ export class AuthService {
         email: dto.email,
         password: hashedPassword,
         personalNumber: dto.personalNumber,
-        status: dto.status ? dto.status : null,
+        status: dto.status,
         role: dto.role,
+      });
+
+      const userPayment = await this.paymentModel.create({
+        user: createdUser._id,
+        payments: [],
+      });
+
+      await this.userModel.updateOne(
+        { _id: createdUser._id },
+        { payments: userPayment._id },
+      );
+
+      await this.statusModel.findByIdAndUpdate(createdUser.status, {
+        $push: {
+          users: createdUser._id,
+        },
       });
 
       return createdUser;
@@ -49,33 +69,37 @@ export class AuthService {
   }
 
   async signin(dto: SigninAuthDto) {
-    const user = await this.userModel.findOne({
-      $or: [
-        { email: dto.emailOrPersonalNumber },
-        { personalNumber: dto.emailOrPersonalNumber },
-      ],
-    });
+    try {
+      const user = await this.userModel.findOne({
+        $or: [
+          { email: dto.emailOrPersonalNumber },
+          { personalNumber: dto.emailOrPersonalNumber },
+        ],
+      });
 
-    if (!user) {
-      throw new ForbiddenException('Ky user nuk ekziston');
+      if (!user) {
+        throw new ForbiddenException('Ky user nuk ekziston');
+      }
+
+      const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+      if (!isPasswordValid) {
+        throw new ForbiddenException('Password nuk eshte i sakt');
+      }
+
+      const token = await this.signToken({
+        id: user._id.toString(),
+        email: user.email,
+        personalNumber: user.personalNumber,
+        role: user.role,
+      });
+
+      return {
+        id: user._id.toString(),
+        token: token.access_token,
+      };
+    } catch (error) {
+      throw new ForbiddenException(error.message);
     }
-
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-    if (!isPasswordValid) {
-      throw new ForbiddenException('Password nuk eshte i sakt');
-    }
-
-    const token = await this.signToken({
-      id: user._id.toString(),
-      email: user.email,
-      personalNumber: user.personalNumber,
-      role: user.role,
-    });
-
-    return {
-      id: user._id.toString(),
-      token: token.access_token,
-    };
   }
 
   async signToken({

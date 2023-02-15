@@ -5,7 +5,7 @@ import { Payment, PaymentDocument } from 'src/schema/payment.schema';
 import { User, UserDocument } from 'src/schema/user.schema';
 import { FilterPayments } from 'src/types/filter';
 import { PaymentDto } from './dto/management.dto';
-import { calculateDataPerYear } from './utils/helper';
+import { calculateDataPerYear, calculateNewTotal } from './utils/helper';
 import { isEmpty } from 'lodash';
 
 @Injectable()
@@ -22,19 +22,31 @@ export class ManagementService {
         throw new ForbiddenException('Ky user nuk ekziston');
       }
 
-      const payment = await this.paymentModel.findOneAndUpdate(
-        { user: user._id },
-        {
-          $push: {
-            payments: {
-              ...dto,
-              householdHeader:
-                dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
+      const payment = await this.paymentModel
+        .findOneAndUpdate(
+          { user: user._id },
+          {
+            $push: {
+              payments: {
+                ...dto,
+                householdHeader:
+                  dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
+              },
             },
           },
-        },
-        { new: true, upsert: true },
-      );
+          { new: true, upsert: true },
+        )
+        .populate({
+          path: 'user',
+          select: '-password',
+          populate: { path: 'status', select: 'name' },
+        })
+        .lean();
+
+      const newData = {
+        ...payment,
+        totalPayed: calculateNewTotal(payment.payments),
+      };
 
       if (!user.payments) {
         await this.userModel.updateOne(
@@ -43,7 +55,7 @@ export class ManagementService {
         );
       }
 
-      return payment;
+      return newData;
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
@@ -84,9 +96,19 @@ export class ManagementService {
           },
           { new: true },
         )
-        .populate('user', '-password');
+        .populate({
+          path: 'user',
+          select: '-password',
+          populate: { path: 'status', select: 'name' },
+        })
+        .lean();
 
-      return response;
+      const newData = {
+        ...response,
+        totalPayed: calculateNewTotal(response.payments),
+      };
+
+      return newData;
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
@@ -162,7 +184,10 @@ export class ManagementService {
           ...userMatch,
         },
         {
-          $unwind: '$payments',
+          $unwind: {
+            path: '$payments',
+            preserveNullAndEmptyArrays: true,
+          },
         },
         { ...paymentsMatch },
         {
@@ -174,33 +199,27 @@ export class ManagementService {
             payments: {
               $push: '$payments',
             },
+            totalPayed: {
+              $sum: '$payments.amount',
+            },
           },
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'user',
-            foreignField: '_id',
-            as: 'user',
-          },
-        },
-        {
-          $unwind: '$user',
         },
         {
           $project: {
-            user: {
-              _id: 1,
-              firstName: 1,
-              lastName: 1,
-              email: 1,
-              personalNumber: 1,
-              status: 1,
-              role: 1,
-              createdAt: 1,
-              updatedAt: 1,
-            },
+            user: '$user',
             payments: 1,
+            totalPayed: 1,
+          },
+        },
+      ]);
+
+      await this.paymentModel.populate(result, [
+        {
+          path: 'user',
+          select: '-password -payments',
+          populate: {
+            path: 'status',
+            select: 'name',
           },
         },
       ]);
@@ -243,7 +262,7 @@ export class ManagementService {
         },
       );
 
-      return paymentId;
+      return { paymentId };
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
