@@ -1,4 +1,4 @@
-import { Payment } from 'src/schema/payment.schema';
+import { Payment, PaymentField } from 'src/schema/payment.schema';
 
 export const calculateDataPerYear = (data: Payment[]) => {
   const obj = {};
@@ -24,4 +24,10 @@ export const calculateDataPerYear = (data: Payment[]) => {
   });
 
   return obj;
+};
+
+export const calculateNewTotal = (payments: PaymentField[]) => {
+  return payments.reduce((prev, curr) => {
+    return prev + curr.amount;
+  }, 0);
 };

@@ -5,7 +5,7 @@ import { Payment, PaymentDocument } from 'src/schema/payment.schema';
 import { User, UserDocument } from 'src/schema/user.schema';
 import { FilterPayments } from 'src/types/filter';
 import { PaymentDto } from './dto/management.dto';
-import { calculateDataPerYear } from './utils/helper';
+import { calculateDataPerYear, calculateNewTotal } from './utils/helper';
 import { isEmpty } from 'lodash';
 
 @Injectable()
@@ -36,7 +36,17 @@ export class ManagementService {
           },
           { new: true, upsert: true },
         )
-        .populate('user', '-password');
+        .populate({
+          path: 'user',
+          select: '-password',
+          populate: { path: 'status', select: 'name' },
+        })
+        .lean();
+
+      const newData = {
+        ...payment,
+        totalPayed: calculateNewTotal(payment.payments),
+      };
 
       if (!user.payments) {
         await this.userModel.updateOne(
@@ -45,7 +55,7 @@ export class ManagementService {
         );
       }
 
-      return payment;
+      return newData;
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
@@ -95,9 +105,7 @@ export class ManagementService {
 
       const newData = {
         ...response,
-        totalPayed: response.payments.reduce((prev, curr) => {
-          return prev + curr.amount;
-        }, 0),
+        totalPayed: calculateNewTotal(response.payments),
       };
 
       return newData;
