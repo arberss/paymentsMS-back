@@ -1,12 +1,24 @@
-import { IsDateString, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { paymentsType } from 'src/schema/payment.schema';
 
 export class ActionDto {
-  @IsNotEmpty()
+  @ValidateIf((values: { [key: string]: any }) => {
+    if (!values?.customUserName) return true;
+    return false;
+  })
   @IsString()
   user: string;
 
-  @IsNotEmpty()
+  @ValidateIf((values: { [key: string]: any }) => {
+    if (!values?.user) return true;
+    return false;
+  })
   @IsString()
   customUserName: string;
 
@@ -35,7 +47,7 @@ export class ActionDto {
   exchange: string;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   currency: string;
 
   @IsNotEmpty()
