@@ -1,30 +1,18 @@
-import {
-  IsDateString,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-  ValidateIf,
-} from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { paymentsType } from 'src/schema/payment.schema';
 
 export class ActionDto {
-  @ValidateIf((values: { [key: string]: any }) => {
-    if (!values?.customUserName) return true;
-    return false;
-  })
+  @IsNotEmpty()
   @IsString()
   user: string;
-
-  @ValidateIf((values: { [key: string]: any }) => {
-    if (!values?.user) return true;
-    return false;
-  })
-  @IsString()
-  customUserName: string;
 
   @IsNotEmpty()
   @IsString()
   type: paymentsType;
+
+  @IsNotEmpty()
+  @IsString()
+  description: string;
 
   @IsNotEmpty()
   @IsString()
@@ -57,9 +45,6 @@ export class ActionDto {
   @IsNotEmpty()
   @IsString()
   invoiceNr: string;
-
-  @IsString()
-  householdHeader: string;
 
   @IsNotEmpty()
   @IsString()
