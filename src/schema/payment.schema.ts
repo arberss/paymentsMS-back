@@ -11,7 +11,6 @@ export enum paymentsType {
 }
 
 export interface Payments {
-  type: paymentsType;
   reason: string;
   paymentDate: Date;
   payedForYear: number;
@@ -20,14 +19,10 @@ export interface Payments {
   householdHeader: string;
   payer: string;
   paymentReceiver: string;
-  nrOfPersons: number;
 }
 
 @Schema()
 export class PaymentField {
-  @Prop({ enum: paymentsType })
-  type: string;
-
   @Prop()
   reason: string;
 
@@ -51,9 +46,6 @@ export class PaymentField {
 
   @Prop()
   paymentReceiver: string;
-
-  @Prop()
-  nrOfPersons: number;
 }
 const PaymentFieldSchema = SchemaFactory.createForClass(PaymentField);
 

@@ -27,11 +27,7 @@ export class ManagementService {
           { user: user._id },
           {
             $push: {
-              payments: {
-                ...dto,
-                householdHeader:
-                  dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
-              },
+              payments: dto,
             },
           },
           { new: true, upsert: true },
@@ -81,17 +77,13 @@ export class ManagementService {
           },
           {
             $set: {
-              'payments.$.type': dto.type,
               'payments.$.reason': dto.reason,
               'payments.$.paymentDate': dto.paymentDate,
               'payments.$.payedForYear': dto.payedForYear,
               'payments.$.exchange': dto.exchange,
               'payments.$.amount': dto.amount,
-              'payments.$.householdHeader':
-                dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
               'payments.$.payer': dto.payer,
               'payments.$.paymentReceiver': dto.paymentReceiver,
-              'payments.$.nrOfPersons': dto.nrOfPersons,
             },
           },
           { new: true },
@@ -152,11 +144,6 @@ export class ManagementService {
       const paymentsMatch = {
         $match: {
           $and: [
-            {
-              ...(filters?.type && {
-                'payments.type': filters?.type,
-              }),
-            },
             {
               ...(search && {
                 $or: [
