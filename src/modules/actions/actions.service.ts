@@ -53,7 +53,7 @@ export class ActionsService {
           },
         },
       ]);
-      return actions?.length > 0 ? actions[0] : { data: [], pagination: {} };
+      return actions?.length > 0 ? actions[0] : { data: [] };
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
