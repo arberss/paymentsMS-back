@@ -5,11 +5,13 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Roles } from 'src/guards/role/role.decorator';
 import { RolesGuard } from 'src/guards/role/role.guard';
 import { FilterPayments } from 'src/types/filter';
+import { IPagination } from 'src/types/pagination';
 import { JwtAuthGuard } from '../auth/guard/jwt.guard';
 import { PaymentDto } from './dto/management.dto';
 import { ManagementService } from './management.service';
@@ -43,8 +45,12 @@ export class ManagementController {
   @Roles('admin')
   @UseGuards(RolesGuard)
   @Post(':userId?')
-  getPayments(@Param('userId') userId?, @Body() payload?: FilterPayments) {
-    return this.paymentService.getPayments(userId, payload);
+  getPayments(
+    @Query() paginationQueries: IPagination,
+    @Param('userId') userId?,
+    @Body() payload?: FilterPayments,
+  ) {
+    return this.paymentService.getPayments(paginationQueries, userId, payload);
   }
 
   @Roles('admin')

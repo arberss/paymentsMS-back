@@ -23,7 +23,7 @@ export class AuthService {
     try {
       const user = await this.userModel
         .findOne({
-          $or: [{ email: dto.email }, { personalNumber: dto.personalNumber }],
+          $or: [{ personalNumber: dto.personalNumber }],
         })
         .select('-password -payments');
 
@@ -35,7 +35,10 @@ export class AuthService {
         throw new ForbiddenException('Passwordet nuk pershtaten');
       }
 
-      const hashedPassword = await bcrypt.hash(dto.password, 12);
+      let hashedPassword: string;
+      if (dto.password) {
+        hashedPassword = await bcrypt.hash(dto.password, 12);
+      }
       const createdUser = await this.userModel.create({
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -43,7 +46,7 @@ export class AuthService {
         password: hashedPassword,
         personalNumber: dto.personalNumber,
         status: dto.status,
-        role: dto.role,
+        role: dto.role !== '' ? dto.role : 'user',
       });
 
       const userPayment = await this.paymentModel.create({
@@ -79,6 +82,10 @@ export class AuthService {
 
       if (!user) {
         throw new ForbiddenException('Ky user nuk ekziston');
+      }
+
+      if (user && !user.password) {
+        throw new ForbiddenException('Ky user nuk eshte aktiv');
       }
 
       const isPasswordValid = await bcrypt.compare(dto.password, user.password);

@@ -9,17 +9,14 @@ export class AuthDto {
   @IsString()
   lastName: string;
 
-  @IsNotEmpty()
   @IsEmail()
-  email: string;
+  email?: string;
 
-  @IsNotEmpty()
   @IsString()
-  password: string;
+  password?: string;
 
-  @IsNotEmpty()
   @IsString()
-  confirmPassword: string;
+  confirmPassword?: string;
 
   @IsNotEmpty()
   @IsNumber()
@@ -29,7 +26,6 @@ export class AuthDto {
   @IsString()
   status: string;
 
-  @IsNotEmpty()
   @IsString()
   role: string;
 }
