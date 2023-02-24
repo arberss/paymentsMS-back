@@ -23,7 +23,7 @@ export class AuthService {
     try {
       const user = await this.userModel
         .findOne({
-          $or: [{ personalNumber: dto.personalNumber }],
+          $or: [{ personalNumber: dto.personalNumber }, { email: dto.email }],
         })
         .select('-password -payments');
 
