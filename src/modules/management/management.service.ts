@@ -1,3 +1,4 @@
+import { IPagination } from 'src/types/pagination';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -27,11 +28,7 @@ export class ManagementService {
           { user: user._id },
           {
             $push: {
-              payments: {
-                ...dto,
-                householdHeader:
-                  dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
-              },
+              payments: dto,
             },
           },
           { new: true, upsert: true },
@@ -81,17 +78,13 @@ export class ManagementService {
           },
           {
             $set: {
-              'payments.$.type': dto.type,
               'payments.$.reason': dto.reason,
               'payments.$.paymentDate': dto.paymentDate,
               'payments.$.payedForYear': dto.payedForYear,
               'payments.$.exchange': dto.exchange,
               'payments.$.amount': dto.amount,
-              'payments.$.householdHeader':
-                dto.householdHeader ?? `${user.firstName} ${user.lastName}`,
               'payments.$.payer': dto.payer,
               'payments.$.paymentReceiver': dto.paymentReceiver,
-              'payments.$.nrOfPersons': dto.nrOfPersons,
             },
           },
           { new: true },
@@ -130,7 +123,6 @@ export class ManagementService {
           },
           { 'payments.$': 1 },
         )
-        .populate('user', '_id')
         .lean();
 
       if (!payment) {
@@ -147,16 +139,15 @@ export class ManagementService {
     }
   }
 
-  async getPayments(userId: string, { filters, search }: FilterPayments) {
+  async getPayments(
+    pagination: IPagination,
+    userId: string,
+    { filters, search }: FilterPayments,
+  ) {
     try {
       const paymentsMatch = {
         $match: {
           $and: [
-            {
-              ...(filters?.type && {
-                'payments.type': filters?.type,
-              }),
-            },
             {
               ...(search && {
                 $or: [
@@ -191,6 +182,15 @@ export class ManagementService {
         },
         { ...paymentsMatch },
         {
+          $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        { $unwind: '$user' },
+        {
           $group: {
             _id: '$_id',
             user: {
@@ -202,18 +202,35 @@ export class ManagementService {
             totalPayed: {
               $sum: '$payments.amount',
             },
+            personalNr: { $first: { $toInt: '$user.personalNumber' } },
+          },
+        },
+        { $sort: { personalNr: 1 } },
+        {
+          $facet: {
+            data: [
+              { $skip: (+pagination?.page - 1) * pagination?.size },
+              { $limit: +pagination?.size },
+            ],
+            totalPages: [{ $count: 'total' }],
           },
         },
         {
+          $addFields: { size: +pagination?.size, page: +pagination?.page },
+        },
+        {
           $project: {
-            user: '$user',
-            payments: 1,
-            totalPayed: 1,
+            data: 1,
+            pagination: {
+              totalPages: { $arrayElemAt: ['$totalPages.total', 0] },
+              page: '$page',
+              size: '$size',
+            },
           },
         },
       ]);
 
-      await this.paymentModel.populate(result, [
+      await this.paymentModel.populate(result[0].data, [
         {
           path: 'user',
           select: '-password -payments',
@@ -232,7 +249,7 @@ export class ManagementService {
         return data;
       }
 
-      return result;
+      return result[0] ?? [];
     } catch (error) {
       throw new ForbiddenException(error.message);
     }

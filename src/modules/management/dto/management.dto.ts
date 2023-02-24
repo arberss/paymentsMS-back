@@ -1,17 +1,6 @@
-import {
-  IsDateString,
-  IsEmpty,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-} from 'class-validator';
-import { paymentsType } from 'src/schema/payment.schema';
+import { IsDateString, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class PaymentDto {
-  @IsNotEmpty()
-  @IsString()
-  type: paymentsType;
-
   @IsNotEmpty()
   @IsString()
   reason: string;
@@ -32,8 +21,6 @@ export class PaymentDto {
   @IsNumber()
   amount: string;
 
-  householdHeader: string;
-
   @IsNotEmpty()
   @IsString()
   payer: string;
@@ -41,8 +28,4 @@ export class PaymentDto {
   @IsNotEmpty()
   @IsString()
   paymentReceiver: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  nrOfPersons: number;
 }

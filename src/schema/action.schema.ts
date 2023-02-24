@@ -1,22 +1,21 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { HydratedDocument } from 'mongoose';
-import { User } from './user.schema';
+import { HydratedDocument } from 'mongoose';
 
 export type ActionDocument = HydratedDocument<Action>;
 
 @Schema({ timestamps: true })
 export class Action {
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-  user: User;
-
   @Prop()
-  customUserName: string;
+  user: string;
 
   @Prop()
   type: string;
 
   @Prop()
   reason: string;
+
+  @Prop()
+  description: string;
 
   @Prop()
   paymentDate: Date;
@@ -38,9 +37,6 @@ export class Action {
 
   @Prop()
   invoiceNr: string;
-
-  @Prop()
-  householdHeader: string;
 
   @Prop()
   payer: string;
