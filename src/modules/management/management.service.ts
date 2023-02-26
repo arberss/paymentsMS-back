@@ -1,10 +1,8 @@
-import { IPagination } from 'src/types/pagination';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Payment, PaymentDocument } from 'src/schema/payment.schema';
 import { User, UserDocument } from 'src/schema/user.schema';
-import { FilterPayments } from 'src/types/filter';
 import { PaymentDto } from './dto/management.dto';
 import { calculateDataPerYear, calculateNewTotal } from './utils/helper';
 import { isEmpty } from 'lodash';
@@ -139,22 +137,23 @@ export class ManagementService {
     }
   }
 
-  async getPayments(
-    pagination: IPagination,
-    userId: string,
-    { filters, search }: FilterPayments,
-  ) {
+  async getPayments(queries: { [key: string]: string }, userId: string) {
     try {
       const paymentsMatch = {
         $match: {
           $and: [
             {
-              ...(search && {
+              ...(queries?.search && {
                 $or: [
-                  { 'payments.payer': { $regex: search, $options: 'i' } },
+                  {
+                    'payments.payer': {
+                      $regex: queries?.search,
+                      $options: 'i',
+                    },
+                  },
                   {
                     'payments.householdHeader': {
-                      $regex: search,
+                      $regex: queries?.search,
                       $options: 'i',
                     },
                   },
@@ -209,14 +208,19 @@ export class ManagementService {
         {
           $facet: {
             data: [
-              { $skip: (+pagination?.page - 1) * pagination?.size },
-              { $limit: +pagination?.size },
+              {
+                $skip: (+queries?.page - 1) * +queries?.size,
+              },
+              { $limit: +queries?.size },
             ],
             totalPages: [{ $count: 'total' }],
           },
         },
         {
-          $addFields: { size: +pagination?.size, page: +pagination?.page },
+          $addFields: {
+            size: +queries?.size,
+            page: +queries?.page,
+          },
         },
         {
           $project: {
@@ -241,7 +245,7 @@ export class ManagementService {
         },
       ]);
 
-      if (filters?.by) {
+      if (queries?.by) {
         const data = calculateDataPerYear(result);
         if (isEmpty(data)) {
           return [];
