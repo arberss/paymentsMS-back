@@ -6,6 +6,7 @@ import { User, UserDocument } from 'src/schema/user.schema';
 import { PaymentDto } from './dto/management.dto';
 import { calculateDataPerYear, calculateNewTotal } from './utils/helper';
 import { isEmpty } from 'lodash';
+import { calculatePages } from 'src/utils';
 
 @Injectable()
 export class ManagementService {
@@ -253,7 +254,20 @@ export class ManagementService {
         return data;
       }
 
-      return result[0] ?? [];
+      const newPage = calculatePages(
+        result?.[0].pagination.totalPages,
+        result?.[0].pagination.size,
+      );
+
+      return (
+        {
+          ...result[0],
+          pagination: {
+            ...result?.[0]?.pagination,
+            page: newPage < +queries?.page ? +newPage : +queries?.page,
+          },
+        } ?? []
+      );
     } catch (error) {
       throw new ForbiddenException(error.message);
     }

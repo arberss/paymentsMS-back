@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Roles } from 'src/guards/role/role.decorator';
 import { RolesGuard } from 'src/guards/role/role.guard';
 import { IPagination } from 'src/types/pagination';
@@ -23,5 +32,12 @@ export class ActionsController {
   @Get()
   getActions(@Query() paginationQueries: IPagination) {
     return this.actionService.getActions({ pagination: paginationQueries });
+  }
+
+  @Roles('admin')
+  @UseGuards(RolesGuard)
+  @Put(':actionId')
+  deleteAction(@Param('actionId') actionId: string) {
+    return this.actionService.deleteAction(actionId);
   }
 }
