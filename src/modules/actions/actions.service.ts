@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Action, ActionDocument } from 'src/schema/action.schema';
 import { IPagination } from 'src/types/pagination';
+import { calculatePages } from 'src/utils';
 import { ActionDto } from './dto/actions.dto';
 
 @Injectable()
@@ -53,7 +54,33 @@ export class ActionsService {
           },
         },
       ]);
-      return actions?.length > 0 ? actions[0] : { data: [] };
+
+      const newPage = calculatePages(
+        actions?.[0].pagination.totalPages,
+        actions?.[0].pagination.size,
+      );
+
+      return actions?.length > 0
+        ? {
+            ...actions[0],
+            pagination: {
+              ...actions?.[0]?.pagination,
+              page: newPage < page ? +newPage : +page,
+            },
+          }
+        : { data: [] };
+    } catch (error) {
+      throw new ForbiddenException(error.message);
+    }
+  }
+
+  async deleteAction(actionId: string) {
+    try {
+      const action = await this.serviceModel.findOneAndDelete({
+        _id: actionId,
+      });
+
+      return { id: action._id.toString };
     } catch (error) {
       throw new ForbiddenException(error.message);
     }
